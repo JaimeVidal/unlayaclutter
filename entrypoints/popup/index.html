@@ -57,11 +57,12 @@
         <form id="key-form">
           <label for="provider">Provider</label
           ><select id="provider">
+            <option value="local">Local Laya (this computer)</option>
             <option value="vercel">Vercel AI Gateway</option>
             <option value="typesafe">TypeSafe AI</option>
           </select>
-          <label for="api-key">API key</label>
-          <div class="key-row">
+          <label for="api-key" id="api-key-label">API key</label>
+          <div class="key-row" id="key-row">
             <input
               id="api-key"
               type="password"
@@ -70,7 +71,7 @@
               placeholder="Paste Vercel AI Gateway key"
             /><button type="submit" class="secondary">Save</button>
           </div>
-          <p class="disclosure">
+          <p class="disclosure" id="key-disclosure">
             Stored on this device in extension storage, not encrypted or synced. Never sent to
             websites.
           </p>
@@ -79,7 +80,8 @@
       </details>
     </main>
     <footer>
-      <span>Jev</span><span id="mode-hint">Manual analysis · Cached rules apply automatically</span>
+      <span id="engine-name">Laya</span
+      ><span id="mode-hint">Manual analysis · Cached rules apply automatically</span>
     </footer>
     <script type="module" src="./main.ts"></script>
   </body>

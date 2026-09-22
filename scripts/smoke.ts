@@ -60,5 +60,5 @@ if (
 if (!rules.some((rule) => rule.selector === 'div[data-testid="ad-unit"]'))
   throw new Error("Empty ad wrapper was not selected.");
 console.log(
-  `PASS: live Jev via ${providerLabel(provider)} selected ad, cookie dialog and empty ad wrapper; kept editorial context (${Math.round(performance.now() - start)} ms).`,
+  `PASS: live analysis via ${providerLabel(provider)} selected ad, cookie dialog and empty ad wrapper; kept editorial context (${Math.round(performance.now() - start)} ms).`,
 );

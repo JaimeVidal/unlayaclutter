@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   ENDPOINT,
+  LOCAL_ENDPOINT,
   TYPESAFE_ENDPOINT,
   evaluate,
   evaluationCall,
@@ -9,7 +10,7 @@ import {
   rulesFromAnswers,
 } from "../lib/jev";
 import type { Snapshot } from "../lib/model";
-import { resolveProvider, smokeCredentials } from "../lib/providers";
+import { providerNeedsKey, resolveProvider, smokeCredentials } from "../lib/providers";
 
 const snapshot: Snapshot = {
   url: "https://example.com/article?token=private",
@@ -77,10 +78,58 @@ test("Gateway construction retains v4 headers, default route and no TypeSafe mod
   assert.equal(JSON.parse(String(call.init.body)).model, undefined);
 });
 
-test("stored provider resolution defaults missing/unknown values to Gateway", () => {
-  for (const input of [undefined, null, "unknown", "", {}, 1, "vercel"])
-    assert.equal(resolveProvider(input), "vercel");
+test("stored provider resolution defaults missing/unknown values to local inference", () => {
+  for (const input of [undefined, null, "unknown", "", {}, 1])
+    assert.equal(resolveProvider(input), "local");
+  assert.equal(resolveProvider("vercel"), "vercel");
   assert.equal(resolveProvider("typesafe"), "typesafe");
+  assert.equal(resolveProvider("local"), "local");
+});
+
+test("local provider needs no key and hosted providers still do", () => {
+  assert.equal(providerNeedsKey("local"), false);
+  assert.equal(providerNeedsKey("vercel"), true);
+  assert.equal(providerNeedsKey("typesafe"), true);
+});
+
+test("local construction targets loopback, sends no credential and no model field", () => {
+  const call = evaluationCall(snapshot, "", "local");
+  assert.equal(call.url, LOCAL_ENDPOINT);
+  assert.ok(call.url.startsWith("http://127.0.0.1:"));
+  assert.equal(call.init.method, "POST");
+  assert.deepEqual(call.init.headers, { "Content-Type": "application/json" });
+  assert.equal(new Headers(call.init.headers).has("Authorization"), false);
+  assert.equal(JSON.parse(String(call.init.body)).model, undefined);
+  assert.deepEqual(JSON.parse(String(call.init.body)), evaluationRequest(snapshot));
+  assert.ok(!String(call.init.body).includes("token=private"));
+});
+
+test("local gate is looser than the hosted one, matching Laya's entropy-scaled confidence", () => {
+  // Laya reports 0.74 confidence at a 0.90 winning probability; the hosted gate would reject it.
+  assert.deepEqual(rulesFromAnswers(result(0.74, 0.9), snapshot.candidates, "vercel"), []);
+  assert.equal(rulesFromAnswers(result(0.74, 0.9), snapshot.candidates, "local").length, 1);
+  // Still gated: below the knee measured by `npm run calibrate`.
+  assert.deepEqual(rulesFromAnswers(result(0.19, 0.39), snapshot.candidates, "local"), []);
+  assert.deepEqual(rulesFromAnswers(result(0.9, 0.55), snapshot.candidates, "local"), []);
+});
+
+test("an unreachable local server explains how to start it instead of 'Failed to fetch'", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => {
+    throw new TypeError("Failed to fetch");
+  });
+  await assert.rejects(evaluate(snapshot, "", "local"), /python laya_server\.py/);
+});
+
+test("evaluate POSTs to the local server and parses the same Choice payload", async (t) => {
+  const fetch = t.mock.method(globalThis, "fetch", async (url: unknown, init: RequestInit) => {
+    assert.equal(url, LOCAL_ENDPOINT);
+    assert.equal(new Headers(init.headers).has("Authorization"), false);
+    return Response.json(result(0.74, 0.9));
+  });
+  assert.deepEqual(await evaluate(snapshot, "", "local"), [
+    { selector: "div.ad-banner", category: "ad", enabled: true },
+  ]);
+  assert.equal(fetch.mock.calls.length, 1);
 });
 
 test("TypeSafe response ignores top-level metadata and enforces BOTH supplied confidence gates", () => {
@@ -131,7 +180,7 @@ test("HTTP errors are provider aware and never echo response bodies or keys", as
                 ? "Check your Gateway API key."
                 : "Check Gateway credits and model access.";
       await assert.rejects(evaluate(snapshot, "synthetic-test-key", provider), {
-        message: `Jev request failed: HTTP ${status}. ${advice}`,
+        message: `Analysis request failed: HTTP ${status}. ${advice}`,
       });
     }
   }
@@ -159,5 +208,10 @@ test("smoke credentials support direct aliases and reject mixed provider familie
     () => smokeCredentials({ JEV_KEY: "first-test-value", TYPESAFE_API_KEY: "second-test-value" }),
     /differ/,
   );
-  assert.throws(() => smokeCredentials({}), /Set JEV_KEY/);
+  assert.deepEqual(smokeCredentials({ LAYA_LOCAL: "1" }), { provider: "local", key: "" });
+  assert.throws(
+    () => smokeCredentials({ LAYA_LOCAL: "1", JEV_KEY: "synthetic-test-key" }),
+    /LAYA_LOCAL on its own/,
+  );
+  assert.throws(() => smokeCredentials({}), /Set LAYA_LOCAL/);
 });

@@ -18,7 +18,12 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "test": "tsx --test tests/*.test.ts",
-    "check": "bun run typecheck && bun run lint && bun run format:check && bun run test"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "server:setup": "python3 -m venv server/.venv && server/.venv/bin/pip install -r server/requirements.txt",
+    "server": "server/.venv/bin/python server/laya_server.py",
+    "smoke": "LAYA_LOCAL=1 tsx scripts/smoke.ts",
+    "try": "tsx scripts/try-page.ts",
+    "calibrate": "tsx scripts/calibrate.ts"
   },
   "dependencies": {
     "zod": "^4.3.6"

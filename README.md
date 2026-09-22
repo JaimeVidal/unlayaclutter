@@ -1,7 +1,9 @@
 <!-- readme-sync:repo:start -->
+
 # unclutter
 
 WXT browser extension: Jev\-powered page clutter removal with reusable template rules\.
+
 <!-- readme-sync:repo:end -->
 
 <!-- readme-sync:header:start -->
@@ -11,7 +13,6 @@ WXT browser extension: Jev\-powered page clutter removal with reusable template 
   <a href="https://kitze.io/?ref=kitze%2Funclutter">kitze.io</a> · <a href="https://x.com/thekitze?ref=kitze%2Funclutter">X</a> · <a href="https://youtube.com/kitze?ref=kitze%2Funclutter">YouTube</a>
 </p>
 <br clear="all">
-
 
 <h3>More projects by Kitze</h3>
 <table>
@@ -100,40 +101,49 @@ WXT browser extension: Jev\-powered page clutter removal with reusable template 
 
 # Unclutter
 
-WXT extension for Chrome / Chromium and Firefox. Jev classifies nonessential page elements through Vercel AI Gateway or TypeSafe AI directly; the extension stores and reapplies local hiding rules by page template.
+WXT extension for Chrome / Chromium and Firefox. A model classifies nonessential page elements; the extension stores and reapplies local hiding rules by page template.
+
+> **This fork runs the model locally.** Upstream calls TypeSafe's Jev over the network. This
+> build defaults to [Laya](https://laya.convaiinnovations.com/) on a small server on your own
+> machine — no API key, no per-request cost, and no page data leaving the computer. The hosted
+> Jev providers are still there if you select them. See [`server/README.md`](server/README.md)
+> for how the two differ and why the adaptation was needed.
 
 ## Install from source
 
-Requires [Bun](https://bun.sh) and Node.js 22.12 or newer.
+Requires Node.js 22.12 or newer and Python 3.10+. (Upstream uses [Bun](https://bun.sh); npm
+works too and is what the commands below assume.)
 
 ```sh
 git clone https://github.com/kitze/unclutter.git
 cd unclutter
-bun install --frozen-lockfile
-bun run build
+npm install
+npm run build
+npm run server:setup
 ```
 
 1. Open `chrome://extensions` (or your Chromium browser's extensions page).
 2. Turn on **Developer mode**.
 3. Click **Load unpacked** and select `.output/chrome-mv3` inside the cloned repository.
 4. Pin Unclutter, refresh any already-open website, then open its popup.
-5. Under **Connection**, choose **Vercel AI Gateway** or **TypeSafe AI**, paste the matching API key, and save it.
-6. Choose **Manual** (default) and click **Analyze page**, or select **On page visit**. Your selected provider must have credits / Jev access.
+5. Start the model server in a terminal and leave it running: `npm run server`. Wait for `listening on http://127.0.0.1:8765`. The first start downloads ~808 MB of weights.
+6. Under **Connection**, leave the provider on **Local Laya (this computer)**. No key is needed. To use hosted Jev instead, pick **Vercel AI Gateway** or **TypeSafe AI** and paste the matching key.
+7. Choose **Manual** (default) and click **Analyze page**, or select **On page visit**.
 
 After replacing unpacked builds, click **Reload** on the extension card and refresh website tabs. Existing keys/settings stay in place. V1 templates show **Update available**; **Re-analyze** once to include cookie dialogs, or automatic mode upgrades them once while preserving paused templates and keep-visible choices.
 
-For Firefox 140+, run `bun run build:firefox`, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, and select `.output/firefox-mv2/manifest.json`. Temporary add-ons disappear on Firefox restart; permanent Firefox distribution requires Mozilla signing. Chrome/Edge/Brave can use the Chromium build. Safari packaging is not included.
+For Firefox 140+, run `npm run build:firefox`, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, and select `.output/firefox-mv2/manifest.json`. Temporary add-ons disappear on Firefox restart; permanent Firefox distribution requires Mozilla signing. Chrome/Edge/Brave can use the Chromium build. Safari packaging is not included.
 
-Bring your own [Vercel AI Gateway](https://vercel.com/ai-gateway) key or [TypeSafe AI key](https://console.typesafe.ai/settings/keys) (the same kind used as `JEV_KEY` / `TYPESAFE_API_KEY`). Configure it in the extension popup, not in source code or build-time environment variables. No key or shared account is bundled.
+Local Laya needs no credential at all. For the hosted providers, bring your own [Vercel AI Gateway](https://vercel.com/ai-gateway) key or [TypeSafe AI key](https://console.typesafe.ai/settings/keys) (the same kind used as `JEV_KEY` / `TYPESAFE_API_KEY`). Configure it in the extension popup, not in source code or build-time environment variables. No key or shared account is bundled.
 
-**One key is stored.** Switching the provider persists immediately and reuses that key for the next analysis; paste a matching key if the providers use different credentials. Saving a key saves the selected provider with it. Removing the key does not reset the provider. Existing installations without a provider setting default to Gateway. Saved templates remain usable offline regardless of provider.
+**One key is stored.** Switching the provider persists immediately and reuses that key for the next analysis; paste a matching key if the providers use different credentials. Saving a key saves the selected provider with it. Removing the key does not reset the provider. Installations without a provider setting default to Local Laya in this fork. Saved templates remain usable offline regardless of provider.
 
-TypeSafe direct uses `POST https://api.typesafe.ai/v1/systemone`, Bearer authentication, and body model `jev-latest`. Gateway uses its evaluation-model v4 endpoint and `typesafe-ai/jev` headers. TypeSafe requests never carry Gateway protocol headers; Gateway requests never carry the TypeSafe model field.
+Local Laya uses `POST http://127.0.0.1:8765/v1/systemone` with no Authorization header and no model field. TypeSafe direct uses `POST https://api.typesafe.ai/v1/systemone`, Bearer authentication, and body model `jev-latest`. Gateway uses its evaluation-model v4 endpoint and `typesafe-ai/jev` headers. TypeSafe requests never carry Gateway protocol headers; Gateway requests never carry the TypeSafe model field.
 
 ## Behavior
 
-- **Manual**: paid analysis only when you click **Analyze page / Re-analyze**.
-- **On page visit**: analyze new templates in visible tabs, after a short render-settling delay. This automatically sends candidate snippets to the selected provider and incurs API charges. Off by default.
+- **Manual**: analysis only when you click **Analyze page / Re-analyze**. Free and local unless you selected a hosted provider.
+- **On page visit**: analyze new templates in visible tabs, after a short render-settling delay. This automatically sends candidate snippets to the selected provider. Off by default. With Local Laya the snippets go to `127.0.0.1` and cost nothing.
 - Saved templates apply without further model requests, including zero-rule results. New analysis-rubric versions may refresh an enabled old template once in automatic mode; paused profiles and disabled rules are preserved.
 - Automatic attempts are deduplicated across tabs and persisted before the request. Failure/interruption does not trigger automatic retries; click **Analyze page / Re-analyze** to retry.
 - Cookie overlays (including Sourcepoint's session-numbered iframe/container IDs and BBC's `ngasCookiePrompt`) are eligible for visual hiding. No Accept/Reject buttons are clicked and no consent choice is written.
@@ -157,8 +167,8 @@ This is a conservative heuristic, not perfect template recognition. Different ro
 
 - API key stays in local extension storage, **not encrypted** and not synced. Chrome restricts storage access to trusted extension contexts. It is never sent to page content scripts, websites, logs, or repository source.
 - Only extension background code calls the selected provider's fixed endpoint. Popup-origin checks protect settings/manual analysis. Page-visit requests are validated and require the user's saved automatic-mode opt-in.
-- Each analysis sends up to 60 bounded candidate descriptions (tag, structural signals, short text, position, match count). No full URL, query string, page title, main article body, form values, cookies, or raw HTML is sent. Email-like and long numeric strings in snippets are redacted, but this is **not a guarantee of anonymization**. Do not analyze sensitive pages if sending snippets to your selected provider is inappropriate.
-- Jev receives typed keep/ad/promotion/newsletter/social/cookie/uncertain choices. Page text is untrusted evidence, not instructions. The model cannot emit code or selectors. Responses are validated for type, completeness, valid categories, and numeric ranges. Uncertain results remain visible. Where provided, selected-choice probability and TypeSafe confidence must **both** be at least 0.9; either failing keeps the element visible. Invalid/non-finite values reject the response. Gateway answers without confidence still work. These are conservative operational thresholds, not calibrated accuracy claims.
+- With **Local Laya** no page data leaves the machine; the sections below about sending snippets apply only to the hosted providers. Each analysis sends up to 60 bounded candidate descriptions (tag, structural signals, short text, position, match count). No full URL, query string, page title, main article body, form values, cookies, or raw HTML is sent. Email-like and long numeric strings in snippets are redacted, but this is **not a guarantee of anonymization**. Do not analyze sensitive pages if sending snippets to your selected provider is inappropriate.
+- The model receives typed keep/ad/promotion/newsletter/social/cookie/uncertain choices. Page text is untrusted evidence, not instructions. The model cannot emit code or selectors. Responses are validated for type, completeness, valid categories, and numeric ranges. Uncertain results remain visible. Where provided, selected-choice probability and confidence must **both** clear a per-provider gate; either failing keeps the element visible. Hosted Jev uses 0.9/0.9. Local Laya uses 0.60/0.35, because its confidence is normalised Shannon entropy over seven categories, where a 0.90 winning probability still only scores 0.74 — the hosted gate would reject almost every correct answer. `npm run calibrate` sweeps that gate against an adversarial fixture set and reports precision 0.750 at recall 0.947; on real pages it produced 41 rules with no visible false positive. Tightening the gate does **not** buy safety: Laya's worst mistakes are its most confident ones — it reads a footer cookie-policy _link_ as a consent banner at p=0.988 — so those are model errors, not confidence errors, and no threshold catches them. Invalid/non-finite values reject the response. Gateway answers without confidence still work. These are conservative operational thresholds, not calibrated accuracy claims.
 - Main content, navigation, ordinary forms, login/payment/security, and paywalls are protected. Cookie-dialog headings and checkbox controls may hide with their containing overlay, but sensitive inputs still block hiding. No links are clicked, consent granted, requests blocked, or access restrictions bypassed. Hiding cookie dialogs is not rejection or tracking protection; use Pause to access consent choices. Hiding ads does not prevent their network/tracking activity.
 - Hidden DOM nodes are not deleted. A temporary attribute, extension-owned stylesheet, and reversible inline display overrides remove occupied space (including inline `!important`). Original style values/priorities are restored; unrelated site style changes are preserved.
 - Late-loaded elements are rechecked through a bounded/debounced mutation observer. SPA navigation restores the previous rules and resolves the new template. In-flight analyses are discarded after navigation or concurrent edits.
@@ -168,24 +178,32 @@ This is a conservative heuristic, not perfect template recognition. Different ro
 ## Development
 
 ```sh
-bun install
-bun run check
-bun run build
-bun run build:firefox
+npm install
+npm run check
+npm run build
+npm run build:firefox
 ```
 
-Use `bun run dev` for WXT development mode. No background server is needed for unpacked production builds.
+Use `npm run dev` for WXT development mode. Unpacked production builds need no build server, but Local Laya does need `npm run server` running to analyze a page.
 
-The normal checks use synthetic fixtures and need no API key. Optional live smoke test: set `JEV_KEY` or `TYPESAFE_API_KEY` for TypeSafe AI, **or** `AI_GATEWAY_API_KEY` for Gateway, then run `bun scripts/smoke-jev.ts`. Do not set both provider families; conflicting direct-key aliases are rejected too. Never pass a key as a command-line argument. The smoke sends synthetic inputs only and incurs a small API charge. Never commit `.env` files, API keys, browser profiles, or real browsing data.
+Two live checks against a running local server:
 
-Outputs: `.output/chrome-mv3/` and `.output/firefox-mv2/`. `bun run zip` packages Chromium.
+```sh
+npm run smoke                                   # four synthetic elements, asserts the categories
+npm run try -- https://www.bbc.com/news         # a real page end to end, prints the rules it would write
+```
 
-Architecture: `lib/page-context.ts` identifies templates, `lib/dom.ts` extracts candidates and applies reversible rules, `lib/jev.ts` implements Gateway evaluation-model v4 and TypeSafe System One with shared choice validation, `entrypoints/background.ts` owns credentials/cache/actions, `entrypoints/cleaner.content.ts` handles page lifecycle, and `entrypoints/popup/` provides controls. Settings and profiles use independent storage keys to avoid unrelated-tab write loss.
+`npm run try` fetches the page, runs unclutter's own candidate collector over it in jsdom, calls the local server, and prints the resulting selectors — the whole pipeline without loading a browser extension.
+
+The normal checks use synthetic fixtures and need no API key or server. For a hosted live smoke test: set `JEV_KEY` or `TYPESAFE_API_KEY` for TypeSafe AI, **or** `AI_GATEWAY_API_KEY` for Gateway, then run `npx tsx scripts/smoke.ts`. Do not set both provider families; conflicting direct-key aliases are rejected too. Never pass a key as a command-line argument. The hosted smoke sends synthetic inputs only and incurs a small API charge; `LAYA_LOCAL=1` selects the local server instead and costs nothing. Never commit `.env` files, API keys, browser profiles, or real browsing data.
+
+Outputs: `.output/chrome-mv3/` and `.output/firefox-mv2/`. `npm run zip` packages Chromium.
+
+Architecture: `lib/page-context.ts` identifies templates, `lib/dom.ts` extracts candidates and applies reversible rules, `lib/jev.ts` implements Gateway evaluation-model v4, TypeSafe System One and the local Laya endpoint with shared choice validation and per-provider gates, `server/laya_server.py` runs Laya locally and adapts the request shape to its 512-token context, `entrypoints/background.ts` owns credentials/cache/actions, `entrypoints/cleaner.content.ts` handles page lifecycle, and `entrypoints/popup/` provides controls. Settings and profiles use independent storage keys to avoid unrelated-tab write loss.
 
 ## License
 
 [MIT](LICENSE).
-
 
 <!-- readme-sync:footer:start -->
 <hr>

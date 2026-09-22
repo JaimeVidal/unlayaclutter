@@ -1,7 +1,7 @@
 import { browser } from "wxt/browser";
 import { z } from "zod";
 import { evaluate } from "../lib/jev";
-import { providers, providerKeyLabel, resolveProvider } from "../lib/providers";
+import { providers, providerKeyLabel, providerNeedsKey, resolveProvider } from "../lib/providers";
 import {
   contextSchema,
   POLICY_VERSION,
@@ -131,7 +131,7 @@ export default defineBackground(() => {
       const before = await profile(snapshot.context);
       const attempt = (await browser.storage.local.get(attemptKey))[attemptKey];
       if (automatic && !shouldAutoAnalyze(config, before, !!attempt)) return;
-      if (!config.apiKey)
+      if (providerNeedsKey(config.provider) && !config.apiKey)
         throw new Error(`Add your ${providerKeyLabel(config.provider)} API key first.`);
       if (!config.enabled) throw new Error("Enable Unclutter before analyzing.");
       tabJobs.add(tabId);
@@ -221,7 +221,8 @@ export default defineBackground(() => {
         return {
           profile: saved,
           enabled: config.enabled,
-          autoEnabled: config.mode === "auto" && !!config.apiKey,
+          autoEnabled:
+            config.mode === "auto" && (!!config.apiKey || !providerNeedsKey(config.provider)),
         };
       }
       if (sender.url !== browser.runtime.getURL("/popup.html"))
@@ -232,6 +233,8 @@ export default defineBackground(() => {
         return {
           enabled: config.enabled,
           hasKey: !!config.apiKey,
+          // Local inference needs no credential, so readiness is not key presence.
+          ready: !!config.apiKey || !providerNeedsKey(config.provider),
           provider: config.provider,
           mode: config.mode,
         };

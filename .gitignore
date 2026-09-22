@@ -8,3 +8,7 @@ node_modules/
 *.pfx
 *.log
 .DS_Store
+
+# Local Laya server
+server/.venv/
+server/__pycache__/

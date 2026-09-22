@@ -3,6 +3,7 @@ import { ANALYSIS_VERSION, unwrap, type PageState, type Reply } from "../../lib/
 import {
   providerLabel,
   providerKeyLabel,
+  providerNeedsKey,
   resolveProvider,
   type Provider,
 } from "../../lib/providers";
@@ -21,8 +22,9 @@ const provider = get<HTMLSelectElement>("provider");
 const errorBox = get("error");
 let tabId: number | undefined;
 let hasKey = false;
+let ready = false;
 let working = false;
-let savedProvider: Provider = "vercel";
+let savedProvider: Provider = "local";
 let current: (PageState & { busy: boolean; error: string | null }) | null = null;
 let poll: ReturnType<typeof setTimeout> | undefined;
 
@@ -40,22 +42,32 @@ function error(error: unknown) {
 }
 function render() {
   const busy = working || current?.busy;
-  analyze.disabled = !current || !hasKey || !global.checked || !!busy;
+  analyze.disabled = !current || !ready || !global.checked || !!busy;
   analyze.textContent = busy ? "Analyzing…" : current?.profile ? "Re-analyze" : "Analyze page";
   toggle.hidden = !current?.profile;
   toggle.disabled = !!busy || !global.checked;
   toggle.textContent = current?.profile?.enabled ? "Pause" : "Resume";
   const selectedProvider = resolveProvider(provider.value);
+  const needsKey = providerNeedsKey(selectedProvider);
   provider.disabled = working;
   get<HTMLInputElement>("api-key").placeholder = `Paste ${providerKeyLabel(selectedProvider)} key`;
-  get("key-status").textContent = hasKey
-    ? `${selectedProvider === "typesafe" ? "TypeSafe" : "Vercel"} · Key saved`
-    : "API key required";
-  get("disclosure").textContent =
-    `Analyze sends up to 60 element descriptions to ${providerLabel(selectedProvider)}. Main article text and form values are excluded; snippets may still contain personal data.`;
-  get("auto-disclosure").textContent =
-    `On page visit automatically sends element snippets to ${providerLabel(selectedProvider)} for new templates. Snippets may contain personal data. API charges apply. Cached templates are reused.`;
-  get("remove-key").hidden = !hasKey;
+  // Local inference has no account, so the whole credential form is irrelevant.
+  get("api-key-label").hidden = !needsKey;
+  get("key-row").hidden = !needsKey;
+  get("key-disclosure").hidden = !needsKey;
+  get("key-status").textContent = !needsKey
+    ? "No key needed"
+    : hasKey
+      ? `${selectedProvider === "typesafe" ? "TypeSafe" : "Vercel"} · Key saved`
+      : "API key required";
+  get("disclosure").textContent = needsKey
+    ? `Analyze sends up to 60 element descriptions to ${providerLabel(selectedProvider)}. Main article text and form values are excluded; snippets may still contain personal data.`
+    : `Analyze sends up to 60 element descriptions to ${providerLabel(selectedProvider)}. Nothing leaves this machine and there is nothing to pay for.`;
+  get("auto-disclosure").textContent = needsKey
+    ? `On page visit automatically sends element snippets to ${providerLabel(selectedProvider)} for new templates. Snippets may contain personal data. API charges apply. Cached templates are reused.`
+    : `On page visit automatically sends element snippets to ${providerLabel(selectedProvider)} for new templates. Nothing leaves this machine. Cached templates are reused.`;
+  get("engine-name").textContent = needsKey ? "Jev" : "Laya";
+  get("remove-key").hidden = !hasKey || !needsKey;
   get("disclosure").hidden = !current || mode.value === "auto";
   get("auto-disclosure").hidden = mode.value !== "auto";
   get("mode-hint").textContent =
@@ -121,12 +133,14 @@ async function load() {
   const config = await request<{
     enabled: boolean;
     hasKey: boolean;
+    ready: boolean;
     mode: "manual" | "auto";
     provider: Provider;
   }>({
     type: "settings",
   });
   hasKey = config.hasKey;
+  ready = config.ready;
   global.checked = config.enabled;
   mode.value = config.mode;
   savedProvider = resolveProvider(config.provider);
@@ -149,7 +163,7 @@ async function load() {
       !current.error &&
       config.mode === "auto" &&
       config.enabled &&
-      hasKey &&
+      ready &&
       current.profile?.enabled !== false &&
       (!current.profile || current.profile.analysisVersion < ANALYSIS_VERSION))
   )
@@ -208,5 +222,5 @@ void (async () => {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   tabId = tab?.id;
   await load();
-  get<HTMLDetailsElement>("connection").open = !hasKey;
+  get<HTMLDetailsElement>("connection").open = !ready;
 })().catch(error);
