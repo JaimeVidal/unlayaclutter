@@ -1,11 +1,11 @@
 {
-  "name": "unclutter",
+  "name": "unlayaclutter",
   "version": "0.3.0",
   "private": true,
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kitze/unclutter.git"
+    "url": "https://github.com/JaimeVidal/unlayaclutter.git"
   },
   "type": "module",
   "scripts": {
@@ -23,7 +23,9 @@
     "server": "server/.venv/bin/python server/laya_server.py",
     "smoke": "LAYA_LOCAL=1 tsx scripts/smoke.ts",
     "try": "tsx scripts/try-page.ts",
-    "calibrate": "tsx scripts/calibrate.ts"
+    "calibrate": "tsx scripts/calibrate.ts",
+    "server:install": "./server/install-agent.sh",
+    "server:uninstall": "./server/install-agent.sh uninstall"
   },
   "dependencies": {
     "zod": "^4.3.6"

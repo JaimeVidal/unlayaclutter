@@ -85,14 +85,14 @@ export default defineBackground(() => {
     const text = error ? "!" : busy ? "…" : paused ? "OFF" : saved ? "ON" : "";
     const color = error ? "#c2413a" : busy ? "#ad6a11" : paused ? "#71717a" : "#187b61";
     const title = error
-      ? "Unclutter: analysis failed — open popup"
+      ? "Unlayaclutter: analysis failed — open popup"
       : busy
-        ? "Unclutter: analyzing"
+        ? "Unlayaclutter: analyzing"
         : paused
-          ? "Unclutter: paused"
+          ? "Unlayaclutter: paused"
           : saved
-            ? `Unclutter: saved template · ${state.hiddenCount} hidden`
-            : "Unclutter: not analyzed";
+            ? `Unlayaclutter: saved template · ${state.hiddenCount} hidden`
+            : "Unlayaclutter: not analyzed";
     await Promise.all([
       action.setBadgeText({ tabId, text }),
       action.setBadgeBackgroundColor({ tabId, color }),
@@ -133,7 +133,7 @@ export default defineBackground(() => {
       if (automatic && !shouldAutoAnalyze(config, before, !!attempt)) return;
       if (providerNeedsKey(config.provider) && !config.apiKey)
         throw new Error(`Add your ${providerKeyLabel(config.provider)} API key first.`);
-      if (!config.enabled) throw new Error("Enable Unclutter before analyzing.");
+      if (!config.enabled) throw new Error("Enable Unlayaclutter before analyzing.");
       tabJobs.add(tabId);
       tabErrors.delete(tabId);
       // Persist BEFORE making a paid request: a failed call or worker restart
