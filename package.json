@@ -25,7 +25,9 @@
     "try": "tsx scripts/try-page.ts",
     "calibrate": "tsx scripts/calibrate.ts",
     "server:install": "./server/install-agent.sh",
-    "server:uninstall": "./server/install-agent.sh uninstall"
+    "server:uninstall": "./server/install-agent.sh uninstall",
+    "harvest": "tsx scripts/harvest.ts",
+    "label": "tsx scripts/make-labeller.ts && open data/label.html"
   },
   "dependencies": {
     "zod": "^4.3.6"

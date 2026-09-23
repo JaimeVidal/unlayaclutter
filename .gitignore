@@ -12,3 +12,6 @@ node_modules/
 # Local Laya server
 server/.venv/
 server/__pycache__/
+
+# Harvested labelling data — regenerate with `npm run harvest`
+data/
