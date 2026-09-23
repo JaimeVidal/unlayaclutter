@@ -86,7 +86,7 @@ This is a conservative heuristic, not perfect template recognition. Different ro
 
 - **No page data leaves the computer.** The extension posts to `http://127.0.0.1:8765`; the model runs in a Python process you started. There is no account, no API key to store, and no request to anyone's server.
 - The server **binds to loopback only** and has **no authentication**. Anything that can already run code as you can call it. Passing `--host 0.0.0.0` would expose unauthenticated inference to your whole network — don't, unless you mean it.
-- It holds roughly **1.7 GB resident** while running, and downloads ~808 MB of weights into `~/.cache/huggingface` on first start. `npm run server:uninstall` stops it starting at login.
+- It costs **~2.7–3.2 GB** of memory while running: 1.6 GB of fp32 weights on the GPU plus ~1 GB of Python, PyTorch and transformers. (RSS alone reads near zero once macOS compresses or swaps the idle process; `footprint <pid>` is the honest number.) It downloads ~808 MB of weights into `~/.cache/huggingface` on first start. `npm run server:uninstall` stops it starting at login. On a machine already short of memory this adds to swap pressure, which is what makes an idle extension slow to open — see **Troubleshooting**.
 - Model weights come from the `convaiinnovations/laya` repository on Hugging Face. You are trusting that download the same way you trust any dependency.
 
 ### With the hosted providers (opt-in)
@@ -105,6 +105,12 @@ This is a conservative heuristic, not perfect template recognition. Different ro
 - Late-loaded elements are rechecked through a bounded, debounced mutation observer. SPA navigation restores the previous rules and resolves the new template. In-flight analyses are discarded after navigation or concurrent edits.
 - Cross-origin iframe contents and shadow DOM are not traversed. Consent iframe/container selectors are reusable across numeric session IDs. Native dialogs and ordinary embedded forms stay visible. Scroll unlocking does not run behind other visible modals; non-overflow locks (fixed-body, inert, custom event interception) may still need site-specific handling.
 - HTTP(S) access is required to restore saved rules on later visits. Internal browser pages, extension stores, PDFs and file URLs are not supported.
+
+## Troubleshooting
+
+**The popup takes seconds to open.** Measured in a clean Chrome, the popup is interactive in 90–130 ms and every message behind it takes under 15 ms, so the extension code is not the bottleneck. Seconds-long opens come from memory pressure: Chrome stops idle extension service workers after ~30 s, and restarting one on a machine that is deep into swap means paging it back in from disk. Check with `sysctl vm.swapusage`. Chrome's **Memory Saver** (Settings → Performance) and closing tabs help most; the Laya server's ~3 GB is a smaller share.
+
+**Analyze fails with "Cannot reach the local Laya server".** `curl 127.0.0.1:8765/health`. If nothing answers, `tail ~/Library/Logs/laya-unclutter.log` and reinstall the agent with `npm run server:install`. The first request after a long idle can also be slow while the server's own memory pages back in.
 
 ## Development
 
