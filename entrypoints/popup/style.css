@@ -154,7 +154,7 @@ summary:focus-visible {
   background: #edf0e9;
   color: #39443b;
 }
-.secondary:hover {
+.secondary:hover:not(:disabled) {
   background: #e3e8df;
 }
 .disclosure {
@@ -272,6 +272,9 @@ input[type="password"] {
   font-weight: 500;
   color: #687063;
 }
+.text-button:hover:not(:disabled) {
+  text-decoration: underline;
+}
 .danger {
   color: #ad5147;
 }
@@ -352,7 +355,7 @@ footer > span:first-child {
     background: #343e31;
     color: #d5dece;
   }
-  .secondary:hover {
+  .secondary:hover:not(:disabled) {
     background: #43503e;
   }
   details {

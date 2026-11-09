@@ -32,7 +32,7 @@
       </p>
       <section id="page" class="page-card">
         <div class="site-line">
-          <strong id="host">Current page</strong><span id="status" class="badge">Loading</span>
+          <strong id="host">Current page</strong><span id="status" class="badge" aria-live="polite">Loading</span>
         </div>
         <p id="template" class="muted"></p>
         <div class="metrics">
@@ -40,7 +40,7 @@
           ><span id="saved" class="muted"></span>
         </div>
         <div class="actions">
-          <button id="analyze" class="primary" disabled>Analyze page</button
+          <button id="analyze" class="primary" disabled aria-describedby="disclosure">Analyze page</button
           ><button id="toggle" class="secondary" hidden>Pause</button>
         </div>
         <p id="disclosure" class="disclosure">
@@ -72,6 +72,7 @@
               autocomplete="off"
               spellcheck="false"
               placeholder="Paste Vercel AI Gateway key"
+              aria-describedby="key-disclosure"
             /><button type="submit" class="secondary">Save</button>
           </div>
           <p class="disclosure" id="key-disclosure">

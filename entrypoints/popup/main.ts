@@ -114,7 +114,7 @@ function render() {
     checkbox.type = "checkbox";
     checkbox.checked = rule.enabled;
     checkbox.disabled = !!busy;
-    checkbox.setAttribute("aria-label", `Hide ${rule.selector}`);
+    checkbox.setAttribute("aria-label", `Hide ${rule.category} (${rule.selector})`);
     const info = document.createElement("div");
     const title = document.createElement("strong");
     title.textContent = rule.category;
