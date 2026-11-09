@@ -221,8 +221,9 @@ export function createCleaner(doc: Document) {
       ...new Set(rules.filter((r) => r.enabled).flatMap((r) => matchingElements(doc, r.selector))),
     ];
     const next = collapseTargets(roots);
+    const nextArray = [...next];
     const contains = (el: Element) =>
-      [...next].some((hidden) => hidden === el || hidden.contains(el));
+      nextArray.some((hidden) => hidden === el || hidden.contains(el));
     const overlay = roots.some(
       (el) => isCookieNotice(el) || doc.defaultView?.getComputedStyle(el).position === "fixed",
     );
@@ -268,8 +269,8 @@ export function createCleaner(doc: Document) {
     if (marked.size && !style.isConnected) (doc.head ?? doc.documentElement).append(style);
     if (!marked.size) style.remove();
     // Count outermost hidden blocks, not nested wrappers and their children.
-    return [...next].filter(
-      (el) => ![...next].some((parent) => parent !== el && parent.contains(el)),
+    return nextArray.filter(
+      (el) => !nextArray.some((parent) => parent !== el && parent.contains(el)),
     ).length;
   };
   return { restore, apply };
