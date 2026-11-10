@@ -43,13 +43,28 @@ function error(error: unknown) {
 function render() {
   const busy = working || current?.busy;
   analyze.disabled = !current || !ready || !global.checked || !!busy;
+  analyze.title = busy
+    ? "Analysis in progress"
+    : !global.checked
+      ? "Extension is globally disabled"
+      : !ready
+        ? "API key or local setup required"
+        : !current
+          ? "Waiting for page"
+          : "";
   analyze.textContent = busy ? "Analyzing…" : current?.profile ? "Re-analyze" : "Analyze page";
   toggle.hidden = !current?.profile;
   toggle.disabled = !!busy || !global.checked;
+  toggle.title = busy
+    ? "Analysis in progress"
+    : !global.checked
+      ? "Extension is globally disabled"
+      : "";
   toggle.textContent = current?.profile?.enabled ? "Pause" : "Resume";
   const selectedProvider = resolveProvider(provider.value);
   const needsKey = providerNeedsKey(selectedProvider);
   provider.disabled = working;
+  provider.title = working ? "Analysis in progress" : "";
   get<HTMLInputElement>("api-key").placeholder = `Paste ${providerKeyLabel(selectedProvider)} key`;
   // Local inference has no account, so the whole credential form is irrelevant.
   get("api-key-label").hidden = !needsKey;
@@ -114,6 +129,7 @@ function render() {
     checkbox.type = "checkbox";
     checkbox.checked = rule.enabled;
     checkbox.disabled = !!busy;
+    checkbox.title = busy ? "Analysis in progress" : "";
     checkbox.setAttribute("aria-label", `Hide ${rule.selector}`);
     const info = document.createElement("div");
     const title = document.createElement("strong");
