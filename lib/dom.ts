@@ -17,6 +17,9 @@ const stable = (value: string) =>
 const identity = (el: Element) =>
   `${el.id} ${el.getAttribute("class") ?? ""} ${el.getAttribute("aria-label") ?? ""} ${el.getAttribute("title") ?? ""} ${el.getAttribute("data-testid") ?? ""} ${el.getAttribute("data-component") ?? ""}`;
 
+const paywallRe = /paywall|sign[-_ ]?in|log[-_ ]?in|captcha|checkout|payment/i;
+const authRe = /sign in to continue|subscribe to (?:read|continue)|verify you are human/i;
+
 export function isCookieNotice(el: Element): boolean {
   if (consentPrefixes.some((prefix) => el.id.startsWith(prefix))) return true;
   const name = identity(el);
@@ -37,15 +40,25 @@ export function isProtected(el: Element): boolean {
   const selector = cookie ? `${structural},${sensitive},dialog` : protectedSelector;
   if (el.matches(selector) || el.querySelector(selector)) return true;
   if (el.closest('[contenteditable="true"]') || (!cookie && el.closest("form"))) return true;
-  if (/paywall|sign[-_ ]?in|log[-_ ]?in|captcha|checkout|payment/i.test(identity(el))) return true;
-  const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
-  if (/sign in to continue|subscribe to (?:read|continue)|verify you are human/i.test(text))
-    return true;
+
+  if (paywallRe.test(identity(el))) return true;
+
+  const textContent = el.textContent;
+  // Early return: if there is barely any text content, it cannot match
+  // the login/auth prompts or exceed the length thresholds, saving regex checks.
+  if (!textContent || textContent.length < 5) return false;
+
+  const text = textContent.replace(/\s+/g, " ").trim();
+  if (authRe.test(text)) return true;
   if (cookie) return text.length > 20_000;
-  return (
-    text.length > 2000 ||
-    [...el.querySelectorAll("p")].some((p) => (p.textContent?.length ?? 0) > 600)
-  );
+
+  if (text.length > 2000) return true;
+
+  const pNodes = el.getElementsByTagName("p");
+  for (let i = 0; i < pNodes.length; i++) {
+    if ((pNodes[i]?.textContent?.length ?? 0) > 600) return true;
+  }
+  return false;
 }
 
 export function matchingElements(doc: Document, selector: string): Element[] {
