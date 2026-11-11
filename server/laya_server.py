@@ -202,7 +202,9 @@ def make_handler(decider: Decider):
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(raw)))
             # The extension reaches us from a background service worker, which needs CORS.
-            self.send_header("Access-Control-Allow-Origin", "*")
+            origin = self.headers.get("Origin")
+            if origin and (origin.startswith("chrome-extension://") or origin.startswith("moz-extension://")):
+                self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
             self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
             self.end_headers()

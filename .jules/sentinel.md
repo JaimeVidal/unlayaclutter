@@ -1,0 +1,4 @@
+## 2025-02-14 - Fix overly permissive CORS configuration
+**Vulnerability:** The local Laya server (`server/laya_server.py`) returned `Access-Control-Allow-Origin: *` for all requests. This allowed any arbitrary website (e.g. a malicious site a user visits) to make CORS-enabled POST requests to `http://127.0.0.1:8765/v1/systemone` using JavaScript (e.g. `fetch`).
+**Learning:** Returning `*` for CORS on a local server creates a cross-origin interaction risk. While the local server isn't authenticated, arbitrary external sites should not be able to abuse a user's local LLM resources or interface with the internal system.
+**Prevention:** Inspect the `Origin` header and only reflect it if it comes from an expected and trusted source (in this case, `chrome-extension://` or `moz-extension://`). Otherwise, omit the header, allowing browsers to block the request.
