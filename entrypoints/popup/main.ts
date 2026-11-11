@@ -44,9 +44,27 @@ function render() {
   const busy = working || current?.busy;
   analyze.disabled = !current || !ready || !global.checked || !!busy;
   analyze.textContent = busy ? "Analyzing…" : current?.profile ? "Re-analyze" : "Analyze page";
+  if (busy) {
+    analyze.title = "Analysis in progress";
+  } else if (!global.checked) {
+    analyze.title = "Enable the extension to analyze pages";
+  } else if (!ready) {
+    analyze.title = "Configure connection to analyze";
+  } else if (!current) {
+    analyze.title = "Current page not analyzable";
+  } else {
+    analyze.title = "";
+  }
   toggle.hidden = !current?.profile;
   toggle.disabled = !!busy || !global.checked;
   toggle.textContent = current?.profile?.enabled ? "Pause" : "Resume";
+  if (busy) {
+    toggle.title = "Analysis in progress";
+  } else if (!global.checked) {
+    toggle.title = "Enable the extension to toggle";
+  } else {
+    toggle.title = "";
+  }
   const selectedProvider = resolveProvider(provider.value);
   const needsKey = providerNeedsKey(selectedProvider);
   provider.disabled = working;
@@ -187,6 +205,23 @@ async function act(message: object) {
   }
 }
 
+function withConfirm(button: HTMLButtonElement, originalText: string, action: () => void) {
+  if (button.dataset.confirm === "true") {
+    button.dataset.confirm = "false";
+    button.textContent = originalText;
+    action();
+  } else {
+    button.dataset.confirm = "true";
+    button.textContent = "Are you sure?";
+    const restore = () => {
+      button.dataset.confirm = "false";
+      button.textContent = originalText;
+      button.removeEventListener("blur", restore);
+    };
+    button.addEventListener("blur", restore);
+  }
+}
+
 analyze.addEventListener("click", () => void act({ type: "analyze", tabId }));
 toggle.addEventListener(
   "click",
@@ -198,8 +233,14 @@ provider.addEventListener(
   "change",
   () => void act({ type: "provider", provider: resolveProvider(provider.value) }),
 );
-get("forget").addEventListener("click", () => void act({ type: "forget", tabId }));
-get("remove-key").addEventListener("click", () => void act({ type: "removeKey" }));
+const forgetButton = get<HTMLButtonElement>("forget");
+forgetButton.addEventListener("click", () =>
+  withConfirm(forgetButton, "Forget this page type", () => void act({ type: "forget", tabId })),
+);
+const removeKeyButton = get<HTMLButtonElement>("remove-key");
+removeKeyButton.addEventListener("click", () =>
+  withConfirm(removeKeyButton, "Remove saved key", () => void act({ type: "removeKey" })),
+);
 get("key-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const input = get<HTMLInputElement>("api-key");

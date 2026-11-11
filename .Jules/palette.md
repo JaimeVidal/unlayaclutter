@@ -1,0 +1,3 @@
+## 2025-02-20 - Inline Confirmation Pattern for Extension Popups
+**Learning:** Standard browser `window.confirm` dialogues can unexpectedly close browser extension popups in some browsers (like Chrome), disrupting the user's workflow when performing destructive actions.
+**Action:** Implemented a robust inline confirmation pattern using HTML dataset attributes and focus events. The button temporarily changes to "Are you sure?" requiring a second click, and automatically reverts when it loses focus (blur). This provides a safe, accessible, and popup-friendly way to handle destructive actions without introducing new UI dependencies.
